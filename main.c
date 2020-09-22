@@ -9,49 +9,40 @@ char * src = NULL;
 //代表数值类型的枚举  
 enum { Num = 128};      //区别于ASCII字符
 
-/*适用于：token是一个字符的情况，如果是数字则无效，src指向下一个指针位置*/
-void next(){
-    token = *src;
-    src++;
-}
 /*  输入：src永远指向未取用的位置
- *  此函数获得src指向的token(数字串或者字符), 调用一次返回一次token, src指向下一个位置
+ *  
+ *  批：一方面获得了token（主线） 另一方面也是向前推进 src指向下一位置
 */
-int getToken(){
+void getToken(){
     while (*src != 0)   //只要本位置不是结束
     {
-        next();         //取本位置这次，同是推进src ：： 结果就是获得token了，下面就是判断了
-        //判断开始...
-        if (token == ' '){
-            while (token == ' ' || token == '\t'){
-                next();
-            }   //最终src指向目标
+        token = *src++;
+
+        while (token == ' ' || token == '\t'){  //小循环：去除所有空格和tab 一次搞完
+            token = *src++;
         }
 
-        if (token >= '0' && token <= '9'){  //开始小循环
+        if (token >= '0' && token <= '9'){  //小循环: 识别数字串  一次搞完
             token_val = token - '0';
-            while (*src >= '0' && *src <= '9')
+            while (*src >= '0' && *src <= '9')  //向前是数字：
             {
-                next();
+                token = *src++;
                 token_val = token_val * 10 + token - '0';
             }
             token = Num;
-            return Num;
+            return;
         }
-        else{
-            return token;
+        else if(token == '('|| token == ')' || token == '+' || token == '-' || token == '*' || token == '/')
+        {
+            return;
         }
     }
-    return 0;
+    return;
 }
-/* match 向前匹配function 输入：src tk 
-    功能：判断前面那个src的内容是不是tk，如果是，那么就跳过src，指向src+1
-                                      如果不是，打印错误
+/* match 获得token，然后与字面值进行比较, 如果相等，不用处理
 */
 void match(int tk){
-    if(*src == tk)
-        src++;
-    else
+    if(token != tk)
         printf("different token! %c\n",tk);    
 }
 
@@ -60,9 +51,10 @@ void match(int tk){
     <expr_tail> ::= +<term><expr_tail>
                   | -<term><expr_tail>
                   | <empty>
-    <term>  ::= *<factor><term_tail>
-              | /<factor><term_tail>
-              | <empty>
+    <term> ::= <factor><term_tail>
+    <term_tail>  ::= *<factor><term_tail>
+                   | /<factor><term_tail>
+                   | <empty>
     <factor> ::= Num
                 | (<expr>)
 */
@@ -81,13 +73,18 @@ int expr(){
 }
 int expr_tail(int lvalue){
     int value;
+        while (*src == ' ' || *src == '\t'){        //去掉空格和tab
+        src++;
+    }
 
     if(*src == '+'){            //如果向前看是+，此时token还不是+
+        getToken();
         match('+');
         value = lvalue + term();
         return expr_tail(value);
     }
     if(*src == '-'){
+        getToken();
         match('-');
         value = lvalue - term();
         return expr_tail(value);
@@ -101,13 +98,18 @@ int term(){
 }
 int term_tail(int lvalue){
     int value;
-
+    while (*src == ' ' || *src == '\t'){        //去掉空格和tab
+        src++;
+    }
+    
     if(*src == '*'){
+        getToken();
         match('*');
         value = lvalue * factor();
         return term_tail(value);
     }
     if(*src == '/'){
+        getToken();
         match('/');
         value = lvalue / factor();
         return term_tail(value);
@@ -122,8 +124,9 @@ int factor(){
         return token_val;
     }
     if(token == '('){
-        //match('(');     //推进一个src
+        match('(');           //推进一个src
         value = expr();         //根据这个新src进行求值
+        getToken();
         match(')');
         return value;
     }
