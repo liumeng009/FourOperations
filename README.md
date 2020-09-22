@@ -3,12 +3,8 @@
 # 使用：输入字符串如：2+(3*4) 输出：14
 
 BNF如下:
-
-
-<expr> ::= <term><expr_tail>
-
-
-<expr_tail> ::= +<term><expr_tail>
+<br><expr> ::= <term><expr_tail>
+<br><expr_tail> ::= +<term><expr_tail>
               | -<term><expr_tail>
               | <empty>
 <term>  ::= *<factor><term_tail>
