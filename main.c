@@ -13,40 +13,40 @@ enum { Num = 128};      //区别于ASCII字符
  *  
  *  批：一方面获得了token（主线） 另一方面也是向前推进 src指向下一位置
 */
-void getToken(){
-    while (*src != 0)   //只要本位置不是结束
-    {
-        token = *src++;
+void nextToken(){
 
-        while (token == ' ' || token == '\t'){  //小循环：去除所有空格和tab 一次搞完
-            token = *src++;
-        }
-
-        if (token >= '0' && token <= '9'){  //小循环: 识别数字串  一次搞完
-            token_val = token - '0';
-            while (*src >= '0' && *src <= '9')  //向前是数字：
-            {
-                token = *src++;
-                token_val = token_val * 10 + token - '0';
-            }
-            token = Num;
-            return;
-        }
-        else if(token == '('|| token == ')' || token == '+' || token == '-' || token == '*' || token == '/')
-        {
-            return;
-        }
+    while (*src == ' ' || *src == '\t')  { //小循环：去除所有空格和tab 一次搞完
+        src++;
     }
-    return;
+    token = *src++;
+
+    if (token >= '0' && token <= '9')
+    { //小循环: 识别数字串  一次搞完
+        token_val = token - '0';
+        token = Num;                //肯定是数字了
+
+        while (*src >= '0' && *src <= '9') //向前是数字：
+        {
+            token_val = token_val * 10 + *src - '0';
+            src++;
+        }
+        return;
+    }
+    else if (token == '(' || token == ')' || token == '+' || token == '-' || token == '*' || token == '/')
+    {
+        return;
+    }
 }
 /* match 获得token，然后与字面值进行比较, 如果相等，不用处理
 */
 void match(int tk){
     if(token != tk)
-        printf("different token! %c\n",tk);    
+        printf("different token! %c\n",tk);
+    else
+        nextToken();    
 }
 
-/*  BNF:
+/*  BNF:代表着一种解释：用右边的格式套左边的数据，就像联合和结构体的共享内存关系, 每一路计算都必须经过叶子结点
     <expr> ::= <term><expr_tail>
     <expr_tail> ::= +<term><expr_tail>
                   | -<term><expr_tail>
@@ -73,18 +73,13 @@ int expr(){
 }
 int expr_tail(int lvalue){
     int value;
-        while (*src == ' ' || *src == '\t'){        //去掉空格和tab
-        src++;
-    }
 
-    if(*src == '+'){            //如果向前看是+，此时token还不是+
-        getToken();
+    if(token == '+'){            //如果向前看是+，此时token还不是+
         match('+');
         value = lvalue + term();
         return expr_tail(value);
     }
-    if(*src == '-'){
-        getToken();
+    if(token == '-'){
         match('-');
         value = lvalue - term();
         return expr_tail(value);
@@ -97,19 +92,14 @@ int term(){
     return term_tail(lvalue);   //创建另一个新的状态
 }
 int term_tail(int lvalue){
-    int value;
-    while (*src == ' ' || *src == '\t'){        //去掉空格和tab
-        src++;
-    }
+    int value = 0;
     
-    if(*src == '*'){
-        getToken();
+    if( token == '*'){
         match('*');
         value = lvalue * factor();
         return term_tail(value);
     }
-    if(*src == '/'){
-        getToken();
+    if( token == '/'){
         match('/');
         value = lvalue / factor();
         return term_tail(value);
@@ -117,16 +107,16 @@ int term_tail(int lvalue){
     return lvalue;
 }
 int factor(){
-    int value;
-    getToken();     //获得src指向的token,src+1
+    int value = 0;
+    //nextToken();     //获得src指向的token,src+1
 
     if(token == Num){
+        match(Num);                     //驱动向前走
         return token_val;
     }
     if(token == '('){
         match('(');           //推进一个src
         value = expr();         //根据这个新src进行求值
-        getToken();
         match(')');
         return value;
     }
@@ -148,6 +138,7 @@ int main(int argc, char * argv[]){
     while (getline(src))
     {
         printf("confirm  string  : %s\n", src);
+        nextToken();
         printf("expr eval result : %d\n\n", expr());
         printf("please input expr: ");
     }
